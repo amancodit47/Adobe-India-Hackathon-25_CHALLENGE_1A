@@ -1,232 +1,181 @@
-# Adobe India Hackathon 2025 - Connecting the Dots Challenge
+# Challenge 1A: PDF Outline Extraction
 
-## Project Overview
+## Overview
 
-This repository contains comprehensive solutions for the Adobe India Hackathon 2025 "Connecting the Dots" Challenge - an intelligent PDF processing system that reimagines how we interact with documents through advanced text extraction and persona-driven intelligence.
+This solution extracts structured outlines from PDF documents, identifying the title and hierarchical headings (H1, H2, H3) with their corresponding page numbers. The system is optimized for speed and accuracy, processing up to 50-page PDFs in under 10 seconds.
 
-## Challenge Description
+## Solution Architecture
 
-**Theme**: Rethink Reading. Rediscover Knowledge
+### Core Components
 
-This solution focuses on building intelligent PDF processing systems that can:
+1. **PDF Processor** (`src/pdf_processor.py`)
 
-- **Round 1A**: Extract structured outlines from PDFs with hierarchical organization and real-time schema validation
+   - PDF text extraction using PyMuPDF
+   - Page-by-page content analysis
+   - Font and style metadata extraction
 
-## Challenge Solutions
+2. **Outline Extractor** (`src/outline_extractor.py`)
 
-### Challenge 1A: PDF Outline Extraction
+   - Multi-strategy heading detection
+   - Hierarchical structure analysis
+   - Title identification from document metadata and content
 
-**Objective**: Extract structured hierarchical outlines from PDF documents
+3. **Main Entry Point** (`process_pdfs.py`)
+   - Docker container entry point
+   - Batch processing of PDFs from `/app/input`
+   - JSON output generation to `/app/output`
 
-**Key Features**:
+### Detection Strategies
 
-- Advanced PDF text extraction using PyMuPDF
-- Multi-strategy heading detection (font-based, formatting-based, regex patterns)
-- Hierarchical structure analysis (H1, H2, H3 levels)
-- Real-time JSON schema validation
-- Performance optimized for ≤10 seconds on 50-page PDFs
-- Handles complex document layouts and multilingual content
+#### Title Detection
 
-**Technical Implementation**:
+1. **Metadata extraction** from PDF properties
+2. **First page analysis** for large, prominent text
+3. **Font-based detection** using size and weight heuristics
 
-- **PDF Processing**: PyMuPDF for robust text extraction
-- **Heading Detection**: Font size analysis, bold text detection, numbering patterns
-- **Structure Building**: Hierarchical outline construction with page references
-- **Validation**: jsonschema compliance checking
-- **Output**: Clean JSON format matching official schema
+#### Heading Detection
 
+1. **Font-size based analysis** - Larger fonts typically indicate headings
+2. **Font-weight analysis** - Bold text often represents headings
+3. **Whitespace analysis** - Headers typically have spacing above/below
+4. **Pattern matching** - Common heading patterns (numbers, bullets, etc.)
+5. **Position analysis** - Headers often appear at specific positions
 
-## Project Structure
+### Output Format
 
+```json
+{
+  "title": "Document Title",
+  "outline": [
+    {
+      "level": "H1",
+      "text": "Main Section",
+      "page": 1
+    },
+    {
+      "level": "H2",
+      "text": "Subsection",
+      "page": 2
+    },
+    {
+      "level": "H3",
+      "text": "Sub-subsection",
+      "page": 3
+    }
+  ]
+}
 ```
-adobe-hackathon-2025/
-├── Challenge_1a/              # PDF Outline Extraction Solution
-│   ├── src/                   # Core processing modules
-│   │   ├── pdf_processor.py   # Main PDF processing coordinator
-│   │   ├── outline_extractor.py # Advanced heading detection engine
-│   │   ├── schema_validator.py # Real-time JSON validation
-│   │   └── utils.py           # Utility functions and helpers
-│   ├── input/                 # Input PDFs directory (6 test files)
-│   ├── output/                # Generated JSON outlines
-│   ├── requirements.txt       # PyMuPDF, jsonschema dependencies
-│   ├── Dockerfile            # Production container config
-│   ├── process_pdfs.py       # Main entry point
-│   ├── validate_schema.py    # Standalone validation tool
-│   └── README.md             # Detailed Challenge 1A documentation
-├── build-and-test.sh         # Automated build & test script
-└── README.md                 # This comprehensive overview
-```
 
-## Key Features & Technical Highlights
+## Technical Implementation
 
-### Challenge 1A: PDF Outline Extraction
+### Dependencies
 
-**Core Capabilities**:
+- **PyMuPDF (fitz)**: Fast PDF text extraction and metadata access
+- **re (regex)**: Pattern matching for heading detection
+- **json**: Output formatting
+- **pathlib**: File path handling
 
-- **Fast PDF Processing**: PyMuPDF-based extraction completing in <10 seconds for 50-page documents
-- **Multi-Strategy Heading Detection**:
-  - Font size and style analysis for visual hierarchy detection
-  - Text formatting recognition (bold, size changes, spacing)
-  - Regex pattern matching for numbered sections and structured content
-  - Intelligent fallback mechanisms for complex layouts
-- **Hierarchical Structure Building**: Automatic H1/H2/H3 classification with proper nesting
-- **Real-Time Validation**: jsonschema compliance checking with detailed error reporting
-- **Robust Error Handling**: Graceful handling of malformed PDFs and edge cases
+### Performance Optimizations
 
-**Performance Metrics**:
+- **Streaming processing**: Process pages sequentially to minimize memory usage
+- **Efficient text extraction**: Use PyMuPDF's optimized text extraction
+- **Smart caching**: Cache font information to avoid repeated calculations
+- **Early termination**: Stop processing when sufficient structure is found
 
-- Processing Speed: 2-8 seconds per PDF (depending on complexity)
-- Memory Usage: <200MB during processing
-- Accuracy: High precision in heading detection across diverse document formats
-- Compatibility: Handles multilingual content and complex formatting
+### Multilingual Support
 
+- **Unicode handling**: Proper support for non-ASCII characters
+- **Language-agnostic patterns**: Detection based on structure rather than language
+- **Font analysis**: Works across different writing systems
 
-### Verifying Results
+## Docker Configuration
 
-#### Challenge 1A Output Structure:
+### Base Image
 
-Each PDF generates a JSON file with:
+- `python:3.10-slim` for minimal footprint
+- AMD64 platform compatibility
+- Offline operation (no network access)
 
-- **title**: Extracted document title
-- **outline**: Array of hierarchical headings with level (H1/H2/H3), text, and page number
+### Container Specifications
 
-## Technical Architecture
+- **Input**: Read-only mount at `/app/input`
+- **Output**: Write mount at `/app/output`
+- **Network**: Disabled (`--network none`)
+- **Memory**: Optimized for 16GB constraint
+- **CPU**: Utilizes 8 available cores
 
-### Challenge 1A Technical Stack:
+## Usage
 
-- **PDF Processing**: PyMuPDF (fitz) for robust text extraction
-- **Text Analysis**: Advanced regex patterns for heading detection
-- **Structure Building**: Hierarchical outline construction algorithms
-- **Validation**: jsonschema for real-time compliance checking
-- **Performance**: Optimized for CPU-only processing with <200MB memory usage
-
-## Getting Started
-
-### Prerequisites
-
-- Docker with AMD64 support
-- Git
-- Python 3.10+ (for local development)
-
-### Automated Build & Test
-
-Use the provided build script for convenient testing:
+### Building the Image
 
 ```bash
-# Test Challenge 1A only
-./build-and-test.sh 1a-test
-
-# Test Challenge 1B only
-./build-and-test.sh 1b-test
-
-# Test both challenges
-./build-and-test.sh test-all
-
-# Build and validate everything
-./build-and-test.sh full
-
-# Show all options
-./build-and-test.sh help
+docker build --platform linux/amd64 -t pdf-processor:v1.0 .
 ```
 
-### Manual Setup
-
-1. Clone the repository:
+### Running the Container
 
 ```bash
-git clone <your-repo-url>
-cd adobe-hackathon-2025
-```
-
-2. **Challenge 1A** - PDF Outline Extraction:
-
-```bash
-cd Challenge_1a
-
-# Docker execution (recommended)
-docker build --platform linux/amd64 -t pdf-processor:v1.1 .
 docker run --rm \
-        -v $(pwd)/input:/app/input:ro \
-        -v $(pwd)/output:/app/output \
-        --network none \
-        pdf-processor:v1.1
-
-# Or local Python execution
-pip install -r requirements.txt
-python process_pdfs.py
-```
+  -v $(pwd)/input:/app/input:ro \
+  -v $(pwd)/output:/app/output \
+  --network none \
+  pdf-processor:v1.0
 ```
 
-### Expected Output
+### Input/Output
 
-#### Challenge 1A Results:
+- **Input**: Place PDF files in `input/` directory
+- **Output**: JSON files generated in `output/` directory
+- **Naming**: `document.pdf` → `document.json`
 
-```
-Checking: challenge_doc.pdf
-Valid
+## Testing Strategy
 
-Summary: 6/6 files passed validation
-All files conform to the official schema!
-```
+### Test Cases
 
-4. **Validate outputs** (optional):
+1. **Simple PDFs**: Basic documents with clear heading hierarchy
+2. **Complex PDFs**: Multi-column layouts, tables, images
+3. **Large PDFs**: 50+ page documents for performance testing
+4. **Multilingual PDFs**: Documents in various languages
+5. **Academic Papers**: Research papers with typical academic structure
 
-```bash
-# For Challenge 1A
-cd Challenge_1a && python validate_schema.py
+### Validation
 
-# For Challenge 1B - Check generated outputs
-cd Challenge_1b
-python validate_schema.py "Collection 1/challenge1b_output.json"
-ls -la "Collection "*/challenge1b_output.json
-```
+- Output JSON schema validation
+- Performance benchmarking
+- Memory usage monitoring
+- Cross-platform compatibility testing
 
-## Performance Specifications
+## Performance Metrics
 
-### Challenge 1A Constraints
+### Target Performance
 
-- **Execution Time**: ≤ 10 seconds for 50-page PDF
-- **Model Size**: ≤ 200MB
-- **Runtime**: CPU only (8 cores, 16GB RAM)
-- **Architecture**: AMD64 (linux/amd64)
-- **Network**: No internet access
+- **Processing Time**: ≤ 10 seconds for 50-page PDF
+- **Memory Usage**: ≤ 16GB RAM
+- **Model Size**: ≤ 200MB total
+- **CPU Efficiency**: Optimal use of 8 cores
 
-## Scoring Criteria & Competition Details
+### Monitoring
 
-### Challenge 1A Scoring (45 points total)
+- Processing time per PDF
+- Memory consumption tracking
+- Accuracy metrics for heading detection
+- Output quality validation
 
-- **Heading Detection Accuracy (25 points)**: Precision in identifying and classifying document headings
-- **Performance & Size Compliance (10 points)**: Meeting execution time and model size constraints
-- **Multilingual Handling Bonus (10 points)**: Effective processing of non-English content
+## Troubleshooting
 
-### Achievement Highlights
+### Common Issues
 
-- Challenge 1A: All 6 test PDFs processed successfully with 100% schema compliance
-- Performance: Solutions meet strict timing and resource constraints
-- Docker Ready: Full containerization for hackathon submission requirements
+1. **Font detection failures**: Fallback to text pattern analysis
+2. **Unicode encoding**: Proper UTF-8 handling
+3. **Memory limits**: Streaming processing for large files
+4. **Performance bottlenecks**: Profiling and optimization
 
-## Development Philosophy
+### Debugging
 
-This solution emphasizes:
-
-- **Modularity**: Clean separation of concerns with reusable components
-- **Performance**: CPU-only processing optimized for competition constraints
-- **Reliability**: Robust error handling and graceful degradation
-- **Maintainability**: Well-documented code with comprehensive testing
-- **Scalability**: Architecture designed for production deployment
-
-## Repository Features
-
-- **Automated Testing**: Comprehensive build and test scripts
-- **Schema Validation**: Real-time compliance checking for both challenges
-- **Docker Support**: Production-ready containerization
-- **Documentation**: Detailed README files for each challenge
-- **Performance Monitoring**: Built-in timing and resource usage tracking
-
-## License
-
-This project is developed for the Adobe India Hackathon 2025 competition by TEAM MINERVA.
+- Verbose logging available via environment variables
+- Intermediate output for analysis
+- Error handling with graceful degradation
 
 ---
 
-**Important**: This is a competitive hackathon submission. All solutions must run offline and meet the specified performance constraints.
+**Note**: This solution prioritizes accuracy and performance while maintaining simplicity and reliability for the competition environment.
